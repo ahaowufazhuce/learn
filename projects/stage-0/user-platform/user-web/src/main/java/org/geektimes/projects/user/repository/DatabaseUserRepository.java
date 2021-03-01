@@ -25,10 +25,6 @@ public class DatabaseUserRepository implements UserRepository {
      */
     private static Consumer<Throwable> COMMON_EXCEPTION_HANDLER = e -> logger.log(Level.SEVERE, e.getMessage());
 
-    public static final String INSERT_USER_DML_SQL =
-            "INSERT INTO users(name,password,email,phoneNumber) VALUES " +
-                    "(?,?,?,?)";
-
     public static final String QUERY_ALL_USERS_DML_SQL = "SELECT id,name,password,email,phoneNumber FROM users";
 
     private final DBConnectionManager dbConnectionManager;
@@ -43,7 +39,39 @@ public class DatabaseUserRepository implements UserRepository {
 
     @Override
     public boolean save(User user) {
-        return false;
+        Statement statement = null;
+        try {
+            statement = dbConnectionManager.getConnection().createStatement();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        // 删除 users 表
+        try {
+            System.out.println(statement.execute(DBConnectionManager.DROP_USERS_TABLE_DDL_SQL));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        // 创建 users 表
+        try {
+            System.out.println(statement.execute(DBConnectionManager.CREATE_USERS_TABLE_DDL_SQL));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        try {
+            String insert = "INSERT INTO users(name,password,email,phoneNumber) VALUES "
+                    + "("
+                    + "'" + user.getName() + "'" + ","
+                    + "'" + user.getPassword() + "'" + ","
+                    + "'" + user.getEmail() + "'" + ","
+                    + "'" + user.getPhoneNumber() + "'"
+                    + ")";
+            int a = statement.executeUpdate(insert);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        Collection<User> all = getAll();
+
+        return true;
     }
 
     @Override
@@ -94,6 +122,7 @@ public class DatabaseUserRepository implements UserRepository {
                     // 以 id 为例，  user.setId(resultSet.getLong("id"));
                     setterMethodFromUser.invoke(user, resultValue);
                 }
+                users.add(user);
             }
             return users;
         }, e -> {

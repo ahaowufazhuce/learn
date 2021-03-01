@@ -14,6 +14,7 @@ import javax.ws.rs.Path;
 @Path("/hello")
 public class HelloWorldController implements PageController {
 
+    @Override
     @GET
     @POST
     @Path("/world") // /hello/world -> HelloWorldController

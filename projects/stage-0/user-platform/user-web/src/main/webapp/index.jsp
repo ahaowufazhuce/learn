@@ -3,9 +3,18 @@
             file="/WEB-INF/jsp/prelude/include-head-meta.jspf"/>
     <title>My Home Page</title>
 </head>
+
 <body>
+
 <div class="container-lg">
-    <!-- Content here -->
     Hello,World 2021
 </div>
+
+<div class="container-lg">
+    <input type="button" value="注册" onclick="window.location.href = 'register.jsp'">
+</div>
+<div class="container-lg">
+    <input type="button" value="登录" onclick="window.location.href = 'login-form.jsp'">
+</div>
+
 </body>
