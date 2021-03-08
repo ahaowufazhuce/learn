@@ -11,7 +11,7 @@
 </div>
 
 <div class="container-lg">
-    <input type="button" value="回首页" onclick="window.location.href = 'index.jsp'">
+    <input type="button" value="回首页" onclick="window.location.href = '/index.jsp'">
 </div>
 
 </body>

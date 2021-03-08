@@ -5,28 +5,23 @@ import org.geektimes.projects.user.sql.LocalTransactional;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
+import javax.validation.Validation;
 import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
 
 public class UserServiceImpl implements UserService {
 
     @Resource(name = "bean/EntityManager")
     private EntityManager entityManager;
 
-    @Resource(name = "bean/Validator")
-    private Validator validator;
-
     @Override
     // 默认需要事务
     @LocalTransactional
     public boolean register(User user) {
-        // before process
-//        EntityTransaction transaction = entityManager.getTransaction();
-//        transaction.begin();
-
-        // 主调用
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        Validator validator = factory.getValidator();
+        validator.validate(user);
         entityManager.persist(user);
-
-        // 调用其他方法方法
         update(user); // 涉及事务
         // register 方法和 update 方法存在于同一线程
         // register 方法属于 Outer 事务（逻辑）
@@ -52,21 +47,8 @@ public class UserServiceImpl implements UserService {
 
         // after process
         // transaction.commit();
-
         return false;
     }
-
-/**
- * 用户服务
- */
-//public class UserServiceImpl implements UserService {
-//    DBConnectionManager dbConnectionManager = new DBConnectionManager();
-//    UserRepository userRepository = new DatabaseUserRepository(dbConnectionManager);
-//
-//    @Override
-//    public boolean register(User user) {
-//        return userRepository.save(user);
-//    }
 
     @Override
     public boolean deregister(User user) {

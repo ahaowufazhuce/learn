@@ -15,6 +15,8 @@ import java.util.stream.Stream;
 
 /**
  * 组件上下文（Web 应用全局使用）
+ * 假设一个 Tomcat JVM 进程，三个 Web Apps，会不会相互冲突？（不会冲突）
+ * static 字段是 JVM 缓存吗？（是 ClassLoader 缓存）
  */
 public class ComponentContext {
 
@@ -24,18 +26,9 @@ public class ComponentContext {
 
     private static final Logger logger = Logger.getLogger(CONTEXT_NAME);
 
-    private static ServletContext servletContext; // 请注意
-    // 假设一个 Tomcat JVM 进程，三个 Web Apps，会不会相互冲突？（不会冲突）
-    // static 字段是 JVM 缓存吗？（是 ClassLoader 缓存）
+    private static ServletContext servletContext;
 
-//    private static ApplicationContext applicationContext;
-
-//    public void setApplicationContext(ApplicationContext applicationContext){
-//        ComponentContext.applicationContext = applicationContext;
-//        WebApplicationContextUtils.getRootWebApplicationContext()
-//    }
-
-    private Context envContext; // Component Env Context
+    private Context envContext;
 
     private ClassLoader classLoader;
 
@@ -206,13 +199,11 @@ public class ComponentContext {
     protected List<String> listComponentNames(String name) {
         return executeInContext(context -> {
             NamingEnumeration<NameClassPair> e = executeInContext(context, ctx -> ctx.list(name), true);
-
             // 目录 - Context
             // 节点 -
             if (e == null) { // 当前 JNDI 名称下没有子节点
                 return Collections.emptyList();
             }
-
             List<String> fullNames = new LinkedList<>();
             while (e.hasMoreElements()) {
                 NameClassPair element = e.nextElement();
