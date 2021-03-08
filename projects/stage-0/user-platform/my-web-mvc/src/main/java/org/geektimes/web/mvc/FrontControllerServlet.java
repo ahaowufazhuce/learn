@@ -25,7 +25,7 @@ import static org.apache.commons.lang.StringUtils.substringAfter;
 /**
  * FrontControllerServlet
  *
- * @author liuhao
+ * @author Ma
  */
 public class FrontControllerServlet extends HttpServlet {
     private static final long serialVersionUID = 8768576852026408884L;
@@ -105,8 +105,7 @@ public class FrontControllerServlet extends HttpServlet {
      */
     @Override
     public void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // 建立映射关系
-        // requestURI = /a/hello/world
+        // 建立映射关系 requestURI = /a/hello/world
         String requestURI = request.getRequestURI();
         // contextPath  = /a or "/" or ""
         String servletContextPath = request.getContextPath();
@@ -115,25 +114,19 @@ public class FrontControllerServlet extends HttpServlet {
         String requestMappingPath = substringAfter(requestURI, StringUtils.replace(prefixPath, "//", "/"));
         // 映射到 Controller
         Controller controller = controllersMapping.get(requestMappingPath);
+        ServletContext servletContext = request.getServletContext();
         if (controller != null) {
             HandlerMethodInfo handlerMethodInfo = handleMethodInfoMapping.get(requestMappingPath);
             try {
                 if (handlerMethodInfo != null) {
                     String httpMethod = request.getMethod();
                     if (!handlerMethodInfo.getSupportedHttpMethods().contains(httpMethod)) {
-                        // HTTP 方法不支持
                         response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
                         return;
                     }
                     if (controller instanceof PageController) {
                         PageController pageController = PageController.class.cast(controller);
                         String viewPath = pageController.execute(request, response);
-                        // 页面请求 forward
-                        // request -> RequestDispatcher forward
-                        // RequestDispatcher requestDispatcher = request.getRequestDispatcher(viewPath);
-                        // ServletContext -> RequestDispatcher forward
-                        // ServletContext -> RequestDispatcher 必须以 "/" 开头
-                        ServletContext servletContext = request.getServletContext();
                         if (!viewPath.startsWith("/")) {
                             viewPath = "/" + viewPath;
                         }
@@ -146,24 +139,9 @@ public class FrontControllerServlet extends HttpServlet {
 
                 }
             } catch (Throwable throwable) {
-                if (throwable.getCause() instanceof IOException) {
-                    throw (IOException) throwable.getCause();
-                } else {
-                    throw new ServletException(throwable.getCause());
-                }
+                RequestDispatcher requestDispatcher = servletContext.getRequestDispatcher("/error.jsp");
+                requestDispatcher.forward(request, response);
             }
         }
     }
-
-//    private void beforeInvoke(Method handleMethod, HttpServletRequest request, HttpServletResponse response) {
-//
-//        CacheControl cacheControl = handleMethod.getAnnotation(CacheControl.class);
-//
-//        Map<String, List<String>> headers = new LinkedHashMap<>();
-//
-//        if (cacheControl != null) {
-//            CacheControlHeaderWriter writer = new CacheControlHeaderWriter();
-//            writer.write(headers, cacheControl.value());
-//        }
-//    }
 }

@@ -1,5 +1,6 @@
 package org.geektimes.projects.user.web.controller;
 
+import org.geektimes.context.ComponentContext;
 import org.geektimes.projects.user.domain.User;
 import org.geektimes.projects.user.service.UserService;
 import org.geektimes.web.mvc.controller.PageController;
@@ -22,6 +23,7 @@ public class UserController implements PageController {
     @Override
     @Path("/register")
     public String execute(HttpServletRequest request, HttpServletResponse response) {
+        userService = ComponentContext.getInstance().getComponent("bean/UserService");
         User user = new User();
         user.setName(request.getParameter("name"));
         user.setEmail(request.getParameter("email"));
@@ -30,5 +32,4 @@ public class UserController implements PageController {
         userService.register(user);
         return "success.jsp";
     }
-
 }

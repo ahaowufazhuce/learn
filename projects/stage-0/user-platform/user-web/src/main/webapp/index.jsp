@@ -14,7 +14,7 @@
     <input type="button" value="注册" onclick="window.location.href = 'register.jsp'">
 </div>
 <div class="container-lg">
-    <input type="button" value="登录" onclick="window.location.href = 'login-form.jsp'">
+    <input type="button" value="登录" onclick="window.location.href = 'login.jsp'">
 </div>
 
 </body>

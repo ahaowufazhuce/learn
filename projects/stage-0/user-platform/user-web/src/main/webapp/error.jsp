@@ -7,11 +7,11 @@
 <body>
 
 <div class="container-lg">
-    SUCCESS
+    出错了
 </div>
 
 <div class="container-lg">
-    <input type="button" value="登录" onclick="window.location.href = '/login.jsp'">
+    <input type="button" value="回首页" onclick="window.location.href = 'index.jsp'">
 </div>
 
 </body>
