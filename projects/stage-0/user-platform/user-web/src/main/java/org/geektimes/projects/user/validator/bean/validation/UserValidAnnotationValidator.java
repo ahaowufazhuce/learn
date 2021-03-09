@@ -61,10 +61,7 @@ public class UserValidAnnotationValidator implements ConstraintValidator<UserVal
         message = message + StringUtils.join(messageList, "，");
         context.disableDefaultConstraintViolation();
         context.buildConstraintViolationWithTemplate(message).addConstraintViolation();
-        if (messageList.size() != 0) {
-            throw new IllegalArgumentException(message);
-        }
-        return true;
+        return messageList.size() == 0;
     }
 
     private boolean validEmail(String email, List<String> messageList) {

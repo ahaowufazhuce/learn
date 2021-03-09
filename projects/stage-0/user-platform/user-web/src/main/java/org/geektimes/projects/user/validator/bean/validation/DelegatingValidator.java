@@ -1,7 +1,5 @@
 package org.geektimes.projects.user.validator.bean.validation;
 
-import org.geektimes.context.ComponentContext;
-
 import javax.annotation.PostConstruct;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
@@ -17,7 +15,7 @@ import java.util.Set;
  * @author Ma
  */
 public class DelegatingValidator implements Validator {
-    private Validator validator = ComponentContext.getInstance().getComponent("bean/Validator");;
+    private Validator validator;
 
     @PostConstruct
     public void init() {

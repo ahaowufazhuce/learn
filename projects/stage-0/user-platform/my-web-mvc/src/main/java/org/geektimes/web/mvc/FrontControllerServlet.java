@@ -136,11 +136,16 @@ public class FrontControllerServlet extends HttpServlet {
                     } else if (controller instanceof RestController) {
                         // TODO
                     }
-
                 }
+            } catch (RuntimeException runtimeException) {
+                response.setHeader("test", runtimeException.getMessage());
+                RequestDispatcher requestDispatcher = servletContext.getRequestDispatcher("/error.jsp");
+                requestDispatcher.forward(request, response);
+                return;
             } catch (Throwable throwable) {
                 RequestDispatcher requestDispatcher = servletContext.getRequestDispatcher("/error.jsp");
                 requestDispatcher.forward(request, response);
+                return;
             }
         }
     }

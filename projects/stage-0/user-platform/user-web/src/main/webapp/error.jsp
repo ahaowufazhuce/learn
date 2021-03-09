@@ -8,6 +8,11 @@
 
 <div class="container-lg">
     出错了
+    <br/>
+    <dev>
+        <%=response.getHeader("test")%>
+    </dev>
+    <br/>
 </div>
 
 <div class="container-lg">
