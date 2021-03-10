@@ -20,7 +20,7 @@ import java.util.stream.Stream;
  */
 public class ComponentContext {
 
-    public static final String CONTEXT_NAME = ComponentContext.class.getName();
+    private static final String CONTEXT_NAME = ComponentContext.class.getName();
 
     private static final String COMPONENT_ENV_CONTEXT_NAME = "java:comp/env";
 
@@ -43,16 +43,31 @@ public class ComponentContext {
         return (ComponentContext) servletContext.getAttribute(CONTEXT_NAME);
     }
 
+    /**
+     * 销毁
+     *
+     * @param context
+     */
     private static void close(Context context) {
         if (context != null) {
             ThrowableAction.execute(context::close);
         }
     }
 
+    /**
+     * 初始化方法
+     * 1.把ComponentContext存入ServletContext的属性中
+     * 2.获取ServletContext的ClassLoader
+     * 3.初始化根环境envContext为COMPONENT_ENV_CONTEXT_NAME
+     * 4.实例化组件，实例化完成后，组件里的@Resource属性尚没有值
+     * 5.初始化组件，给组件里的@Resource属性赋值
+     *
+     * @param servletContext
+     * @throws RuntimeException
+     */
     public void init(ServletContext servletContext) throws RuntimeException {
         ComponentContext.servletContext = servletContext;
         servletContext.setAttribute(CONTEXT_NAME, this);
-        // 获取当前 ServletContext（WebApp）ClassLoader
         this.classLoader = servletContext.getClassLoader();
         initEnvContext();
         instantiateComponents();
@@ -61,9 +76,12 @@ public class ComponentContext {
 
     /**
      * 实例化组件
+     * 1.遍历获取所有的组件名称
+     * 2.循环组件名称
+     * -2.1.通过组件名称查找组件，实际通过envContext的lookup方法查找
+     * -2.2.将组件放入componentsMap
      */
-    protected void instantiateComponents() {
-        // 遍历获取所有的组件名称
+    private void instantiateComponents() {
         List<String> componentNames = listAllComponentNames();
         // 通过依赖查找，实例化对象（ Tomcat BeanFactory setter 方法的执行，仅支持简单类型）
         componentNames.forEach(name -> componentsMap.put(name, lookupComponent(name)));
@@ -77,7 +95,7 @@ public class ComponentContext {
      *  <li>销毁阶段 - {@link PreDestroy}</li>
      * </ol>
      */
-    protected void initializeComponents() {
+    private void initializeComponents() {
         componentsMap.values().forEach(component -> {
             Class<?> componentClass = component.getClass();
             // 注入阶段 - {@link Resource}
@@ -89,6 +107,18 @@ public class ComponentContext {
         });
     }
 
+    /**
+     * 1.获取componentClass所有的申明属性
+     * 2.过滤，保留：非静态属性、有Resource注解属性
+     * 3.循环每个过滤结果的field
+     * -3.1.获取注解name属性值
+     * -3.2.使用jndi查找这个component
+     * -3.3.绕过accessible权限
+     * -3.4.将查得的component设置到这个field的值中
+     *
+     * @param component
+     * @param componentClass
+     */
     private void injectComponents(Object component, Class<?> componentClass) {
         Stream.of(componentClass.getDeclaredFields())
                 .filter(field -> {
@@ -136,7 +166,7 @@ public class ComponentContext {
      * @return 返回
      * @see ThrowableFunction#apply(Object)
      */
-    protected <R> R executeInContext(ThrowableFunction<Context, R> function) {
+    private <R> R executeInContext(ThrowableFunction<Context, R> function) {
         return executeInContext(function, false);
     }
 
@@ -149,7 +179,7 @@ public class ComponentContext {
      * @return 返回
      * @see ThrowableFunction#apply(Object)
      */
-    protected <R> R executeInContext(ThrowableFunction<Context, R> function, boolean ignoredException) {
+    private <R> R executeInContext(ThrowableFunction<Context, R> function, boolean ignoredException) {
         return executeInContext(this.envContext, function, ignoredException);
     }
 
@@ -168,11 +198,19 @@ public class ComponentContext {
         return result;
     }
 
-    protected <C> C lookupComponent(String name) {
+    /**
+     * 内部使用的查找方法
+     *
+     * @param name
+     * @param <C>
+     * @return
+     */
+    private <C> C lookupComponent(String name) {
         return executeInContext(context -> (C) context.lookup(name));
     }
 
     /**
+     * 外部使用的查找方法
      * 通过名称进行依赖查找
      *
      * @param name
@@ -196,7 +234,7 @@ public class ComponentContext {
         return listComponentNames("/");
     }
 
-    protected List<String> listComponentNames(String name) {
+    private List<String> listComponentNames(String name) {
         return executeInContext(context -> {
             NamingEnumeration<NameClassPair> e = executeInContext(context, ctx -> ctx.list(name), true);
             // 目录 - Context
@@ -223,6 +261,11 @@ public class ComponentContext {
         });
     }
 
+    /**
+     * 销毁方法
+     *
+     * @throws RuntimeException
+     */
     public void destroy() throws RuntimeException {
         close(this.envContext);
     }
