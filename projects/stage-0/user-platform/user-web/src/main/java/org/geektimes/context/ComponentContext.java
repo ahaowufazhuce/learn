@@ -138,14 +138,21 @@ public class ComponentContext {
         });
     }
 
+    /**
+     * 1.返回所有公有方法
+     * 2.过滤，保留：非静态方法、没有参数、有@PostConstruct注解
+     * 3.循环每个过滤结果的method：invoke目标方法
+     *
+     * @param component
+     * @param componentClass
+     */
     private void processPostConstruct(Object component, Class<?> componentClass) {
         Stream.of(componentClass.getMethods())
                 .filter(method ->
-                        !Modifier.isStatic(method.getModifiers()) &&      // 非 static
-                                method.getParameterCount() == 0 &&        // 没有参数
-                                method.isAnnotationPresent(PostConstruct.class) // 标注 @PostConstruct
+                        !Modifier.isStatic(method.getModifiers()) &&
+                                method.getParameterCount() == 0 &&
+                                method.isAnnotationPresent(PostConstruct.class)
                 ).forEach(method -> {
-            // 执行目标方法
             try {
                 method.invoke(component);
             } catch (Exception e) {

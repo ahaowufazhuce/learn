@@ -10,7 +10,7 @@
     出错了
     <br/>
     <dev>
-        <%=response.getHeader("test")%>
+        <%=response.getHeader("error")%>
     </dev>
     <br/>
 </div>

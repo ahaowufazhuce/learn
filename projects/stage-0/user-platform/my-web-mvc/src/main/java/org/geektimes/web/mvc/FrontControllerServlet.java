@@ -12,6 +12,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.ConstraintViolationException;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.Path;
 import java.io.IOException;
@@ -137,12 +138,13 @@ public class FrontControllerServlet extends HttpServlet {
                         // TODO
                     }
                 }
-            } catch (RuntimeException runtimeException) {
-                response.setHeader("test", runtimeException.getMessage());
+            } catch (ConstraintViolationException c) {
+                response.setHeader("error", c.getConstraintViolations().iterator().next().getMessage());
                 RequestDispatcher requestDispatcher = servletContext.getRequestDispatcher("/error.jsp");
                 requestDispatcher.forward(request, response);
                 return;
             } catch (Throwable throwable) {
+                response.setHeader("error", throwable.getMessage());
                 RequestDispatcher requestDispatcher = servletContext.getRequestDispatcher("/error.jsp");
                 requestDispatcher.forward(request, response);
                 return;

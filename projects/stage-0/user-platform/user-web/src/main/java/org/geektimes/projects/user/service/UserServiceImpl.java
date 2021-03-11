@@ -7,7 +7,6 @@ import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
-import java.util.Set;
 
 
 /**
@@ -48,11 +47,14 @@ public class UserServiceImpl implements UserService {
     @Override
     @LocalTransactional
     public boolean register(User user) {
-        Set<ConstraintViolation<User>> validate = validator.validate(user);
-        if(validate!= null && validate.size()>0){
-            throw new RuntimeException(validate.iterator().next().getMessageTemplate());
+        try {
+            entityManager.getTransaction().begin();
+            entityManager.persist(user);
+            entityManager.flush();
+        } catch (Exception e) {
+            entityManager.getTransaction().rollback();
+            throw e;
         }
-        entityManager.persist(user);
         return true;
     }
 
