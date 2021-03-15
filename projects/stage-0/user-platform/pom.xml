@@ -33,6 +33,8 @@
 
         <!-- MicroProfile 版本-->
         <microprofile-config-api.version>2.0</microprofile-config-api.version>
+        <jolokia.version>1.6.2</jolokia.version>
+        <jolokia-client-java.version>1.2.2</jolokia-client-java.version>
 
         <!-- Maven Plugins 版本 -->
         <maven.compiler.version>3.8.1</maven.compiler.version>
@@ -122,6 +124,18 @@
                 <version>${microprofile-config-api.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.jolokia</groupId>
+                <artifactId>jolokia-core</artifactId>
+                <version>${jolokia.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jolokia</groupId>
+                <artifactId>jolokia-client-java</artifactId>
+                <version>${jolokia-client-java.version}</version>
+            </dependency>
+
         </dependencies>
 
     </dependencyManagement>
@@ -187,25 +201,6 @@
                         </execution>
                     </executions>
                 </plugin>
-<!--                <plugin>-->
-<!--                    <groupId>org.apache.tomcat.maven</groupId>-->
-<!--                    <artifactId>tomcat8-maven-plugin</artifactId>-->
-<!--                    <version>3.0-r1756463</version>-->
-<!--                    <executions>-->
-<!--                        <execution>-->
-<!--                            <id>tomcat-run</id>-->
-<!--                            <goals>-->
-<!--                                &lt;!&ndash; 最终打包成可执行的jar包 &ndash;&gt;-->
-<!--                                <goal>exec-war-only</goal>-->
-<!--                            </goals>-->
-<!--                            <phase>package</phase>-->
-<!--                            <configuration>-->
-<!--                                &lt;!&ndash; ServletContext 路径 &ndash;&gt;-->
-<!--                                <path>/</path>-->
-<!--                            </configuration>-->
-<!--                        </execution>-->
-<!--                    </executions>-->
-<!--                </plugin>-->
             </plugins>
         </pluginManagement>
 

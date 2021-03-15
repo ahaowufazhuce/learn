@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<restrict>
+    <remote>
+        <host>127.0.0.1</host>
+        <host>localhost</host>
+    </remote>
+    <http>
+        <method>post</method>
+    </http>
+    <commands>
+        <command>read</command>
+        <command>list</command>
+    </commands>
+    <allow>
+        <mbean>
+            <name>java.lang:type=Memory</name>
+            <operation>gc</operation>
+        </mbean>
+        <mbean>
+            <name>org.geektimes.projects.user.management:type=User</name>
+            <attribute>name=刘浩</attribute>
+            <operation>toString</operation>
+        </mbean>
+    </allow>
+    <deny>
+        <mbean>
+            <name>com.mchange.v2.c3p0:type=PooledDataSource,*</name>
+            <attribute>properties</attribute>
+        </mbean>
+    </deny>
+</restrict>
