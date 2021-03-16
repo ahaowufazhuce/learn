@@ -4,6 +4,8 @@ import org.eclipse.microprofile.config.ConfigValue;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
 /**
+ * JavaConfigValue
+ *
  * @author pengxing on 2021/3/15
  */
 public class JavaConfigValue implements ConfigValue {
