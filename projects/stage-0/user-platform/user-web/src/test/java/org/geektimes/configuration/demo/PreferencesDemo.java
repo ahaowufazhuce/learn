@@ -21,5 +21,10 @@ public class PreferencesDemo {
         Optional<Double> optionalValue4 = javaConfig.getOptionalValue("application.version", Double.class);
         System.out.println(optionalValue3.get());
         System.out.println(optionalValue4.get());
+
+        Optional<String> optionalValue5 = javaConfig.getOptionalValue("PWD", String.class);
+        Optional<Double> optionalValue6 = javaConfig.getOptionalValue("VERSIONER_PYTHON_VERSION", Double.class);
+        System.out.println(optionalValue5.get());
+        System.out.println(optionalValue6.get());
     }
 }

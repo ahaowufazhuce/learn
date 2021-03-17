@@ -5,6 +5,7 @@ import org.eclipse.microprofile.config.spi.ConfigSource;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -24,26 +25,16 @@ public class ApplicationConfigSource implements ConfigSource {
         this.properties = new HashMap<>(applicationProperties);
     }
 
-    public Map<String, String> init() {
-        Map<String, String> result = new HashMap<>();
+    public Map init() {
         try {
             InputStream inputStream = ApplicationConfigSource.class.getResourceAsStream("/META-INF/application.properties");
-            byte[] array = new byte[128];
-            int byteNumber = inputStream.read(array);
-            String context = new String(array, 0, byteNumber, "UTF-8");
-            String[] lines = context.split("\n");
-            for (int i = 0; i < lines.length; i++) {
-                String line = lines[i];
-                if (!line.contains("=") || line.startsWith("#")) {
-                    continue;
-                }
-                String[] lineArray = line.split("=");
-                result.put(lineArray[0], lineArray[1]);
-            }
+            Properties properties = new Properties();
+            properties.load(inputStream);
+            return properties;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return result;
+        return new HashMap<>();
     }
 
     @Override
