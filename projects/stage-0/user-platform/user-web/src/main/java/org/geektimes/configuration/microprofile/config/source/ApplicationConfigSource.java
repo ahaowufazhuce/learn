@@ -34,7 +34,7 @@ public class ApplicationConfigSource implements ConfigSource {
             String[] lines = context.split("\n");
             for (int i = 0; i < lines.length; i++) {
                 String line = lines[i];
-                if (!line.contains("=")) {
+                if (!line.contains("=") || line.startsWith("#")) {
                     continue;
                 }
                 String[] lineArray = line.split("=");
