@@ -28,12 +28,17 @@
             <version>${revision}</version>
         </dependency>
 
-
         <!-- Servlet API -->
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- JAX-RS API -->
+        <dependency>
+            <groupId>javax.ws.rs</groupId>
+            <artifactId>javax.ws.rs-api</artifactId>
         </dependency>
 
         <dependency>
@@ -85,7 +90,6 @@
             <artifactId>javax.el</artifactId>
             <version>3.0.1-b11</version>
         </dependency>
-
 
         <dependency>
             <groupId>junit</groupId>
