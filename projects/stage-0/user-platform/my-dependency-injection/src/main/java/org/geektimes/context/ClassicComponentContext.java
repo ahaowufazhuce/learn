@@ -16,33 +16,59 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Java 传统组件上下文（基于 JNDI实现）
+ * Java传统组件上下文 基于 JNDI 实现
  * 假设一个 Tomcat JVM 进程，三个 Web Apps，会不会相互冲突？（不会冲突）
  * static 字段是 JVM 缓存吗？（是 ClassLoader 缓存）
+ *
+ * @author Ma
  */
 public class ClassicComponentContext implements ComponentContext {
 
+    /**
+     * 组件上下文的名字，用于在servlet上下文中传递
+     */
     private static final String CONTEXT_NAME = ClassicComponentContext.class.getName();
 
+    /**
+     * Java jndi 根目录
+     */
     private static final String COMPONENT_ENV_CONTEXT_NAME = "java:comp/env";
 
+    /**
+     * 日志
+     */
     private static final Logger logger = Logger.getLogger(CONTEXT_NAME);
 
+    /**
+     * servlet上下文
+     */
     private static ServletContext servletContext;
 
+    /**
+     * 使用 Java jndi 根目录 查到到的 Java环境根上下文
+     */
     private Context envContext;
 
+    /**
+     * 与当前servlet上下文对应的ClassLoader
+     */
     private ClassLoader classLoader;
 
+    /**
+     * 组件bean生成之后的缓存，相当于bean的池子
+     * Key为名称，Value为组件bean
+     */
     private Map<String, Object> componentsCache = new LinkedHashMap<>();
 
     /**
-     * @PreDestroy 方法缓存，Key 为标注方法，Value 为方法所属对象
+     * 方法缓存，Key 为标注方法，Value 为方法所属对象
      */
     private Map<Method, Object> preDestroyMethodCache = new LinkedHashMap<>();
 
     /**
-     * 获取 ComponentContext
+     * 获取 ComponentContext 实例
+     * 这个实例里，包含了所有已经初始化完成的bean
+     * 调用者一般用来查找、关闭
      *
      * @return
      */
@@ -51,12 +77,8 @@ public class ClassicComponentContext implements ComponentContext {
     }
 
     /**
-     * 初始化方法
-     * 1.把ComponentContext存入ServletContext的属性中
-     * 2.获取ServletContext的ClassLoader
-     * 3.初始化根环境envContext为COMPONENT_ENV_CONTEXT_NAME
-     * 4.实例化组件，实例化完成后，组件里的@Resource属性尚没有值
-     * 5.初始化组件，给组件里的@Resource属性赋值
+     * 总的初始化方法
+     * 把ComponentContext存入ServletContext的属性中
      *
      * @param servletContext
      * @throws RuntimeException
@@ -68,6 +90,48 @@ public class ClassicComponentContext implements ComponentContext {
     }
 
     /**
+     * 具体初始化方法
+     */
+    @Override
+    public void init() {
+        this.initClassLoader();
+        this.initEnvContext();
+        this.instantiateComponents();
+        this.initializeComponents();
+        this.registerShutdownHook();
+    }
+
+    /**
+     * 获取当前ServletContext（WebApp）ClassLoader
+     * 设置到组件上下文（ClassicComponentContext）属性中
+     */
+    private void initClassLoader() {
+        this.classLoader = servletContext.getClassLoader();
+    }
+
+    /**
+     * 初始化根环境envContext
+     * 就是使用 Java jndi 根目录 查到到的 Java环境根上下文
+     * {@link InitialContext}
+     *
+     * @throws RuntimeException
+     */
+    private void initEnvContext() throws RuntimeException {
+        if (this.envContext != null) {
+            return;
+        }
+        Context context = null;
+        try {
+            context = new InitialContext();
+            this.envContext = (Context) context.lookup(COMPONENT_ENV_CONTEXT_NAME);
+        } catch (NamingException e) {
+            throw new RuntimeException(e);
+        } finally {
+            close(context);
+        }
+    }
+
+    /**
      * 实例化组件
      * 1.遍历获取所有的组件名称
      * 2.循环组件名称
@@ -75,13 +139,17 @@ public class ClassicComponentContext implements ComponentContext {
      * -2.2.将组件放入componentsMap
      */
     private void instantiateComponents() {
-        List<String> componentNames = listAllComponentNames();
+        List<String> componentNames = this.listAllComponentNames();
         // 通过依赖查找，实例化对象（ Tomcat BeanFactory setter 方法的执行，仅支持简单类型）
-        componentNames.forEach(name -> componentsCache.put(name, lookupComponent(name)));
+        componentNames.forEach(name -> {
+            logger.info("lookupComponent name : " + name);
+            componentsCache.put(name, this.lookupComponent(name));
+        });
     }
 
     /**
      * 初始化组件（支持 Java 标准 Commons Annotation 生命周期）
+     * 初始化组件，给组件里的@Resource属性赋值
      * <ol>
      *  <li>注入阶段 - {@link Resource}</li>
      *  <li>初始阶段 - {@link PostConstruct}</li>
@@ -94,6 +162,7 @@ public class ClassicComponentContext implements ComponentContext {
 
     /**
      * 初始化组件（支持 Java 标准 Commons Annotation 生命周期）
+     * 初始化组件，给组件里的@Resource属性赋值
      * <ol>
      *  <li>注入阶段 - {@link Resource}</li>
      *  <li>初始阶段 - {@link PostConstruct}</li>
@@ -103,40 +172,39 @@ public class ClassicComponentContext implements ComponentContext {
     public void initializeComponent(Object component) {
         Class<?> componentClass = component.getClass();
         // 注入阶段 - {@link Resource}
-        injectComponent(component, componentClass);
+        this.injectComponent(component, componentClass);
         // 查询候选方法
-        List<Method> candidateMethods = findCandidateMethods(componentClass);
+        List<Method> candidateMethods = this.findCandidateMethods(componentClass);
         // 初始阶段 - {@link PostConstruct}
-        processPostConstruct(component, candidateMethods);
+        this.processPostConstruct(component, candidateMethods);
         // 本阶段处理 {@link PreDestroy} 方法元数据
-        processPreDestroyMetadata(component, candidateMethods);
+        this.processPreDestroyMetadata(component, candidateMethods);
     }
 
     /**
-     * 获取组件类中的候选方法
+     * 获取组件类中的方法作为下两步的候选方法
+     * 1.public方法
+     * 2.非static
+     * 3.无参数
      *
      * @param componentClass 组件类
      * @return non-null
      */
     private List<Method> findCandidateMethods(Class<?> componentClass) {
-        return Stream.of(componentClass.getMethods())                     // public 方法
-                .filter(method ->
-                        !Modifier.isStatic(method.getModifiers()) &&      // 非 static
-                                method.getParameterCount() == 0)          // 无参数
+        return Stream.of(componentClass.getMethods()).filter(method ->
+                !Modifier.isStatic(method.getModifiers()) && method.getParameterCount() == 0)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 注册销毁关闭的钩子
+     */
     private void registerShutdownHook() {
-
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             processPreDestroy();
-
         }));
     }
 
-    public void injectComponent(Object component) {
-        injectComponent(component, component.getClass());
-    }
     /**
      * 1.获取componentClass所有的申明属性
      * 2.过滤，保留：非静态属性、有Resource注解属性
@@ -150,55 +218,57 @@ public class ClassicComponentContext implements ComponentContext {
      * @param componentClass
      */
     protected void injectComponent(Object component, Class<?> componentClass) {
-        Stream.of(componentClass.getDeclaredFields())
-                .filter(field -> {
-                    int mods = field.getModifiers();
-                    return !Modifier.isStatic(mods) &&
-                            field.isAnnotationPresent(Resource.class);
-                }).forEach(field -> {
+        Stream.of(componentClass.getDeclaredFields()).filter(field -> {
+            int mods = field.getModifiers();
+            return !Modifier.isStatic(mods) && field.isAnnotationPresent(Resource.class);
+        }).forEach(field -> {
             Resource resource = field.getAnnotation(Resource.class);
             String resourceName = resource.name();
             Object injectedObject = lookupComponent(resourceName);
             field.setAccessible(true);
             try {
-                // 注入目标对象
                 field.set(component, injectedObject);
             } catch (IllegalAccessException e) {
+                e.printStackTrace();
             }
         });
     }
 
     /**
+     * 执行有PostConstruct注解的方法
      * 1.返回所有公有方法
      * 2.过滤，保留：非静态方法、没有参数、有@PostConstruct注解
      * 3.循环每个过滤结果的method：invoke目标方法
      *
      * @param component
-     * @param componentClass
+     * @param candidateMethods
      */
     private void processPostConstruct(Object component, List<Method> candidateMethods) {
         candidateMethods
                 .stream()
-                .filter(method -> method.isAnnotationPresent(PostConstruct.class))// 标注 @PostConstruct
+                .filter(method -> method.isAnnotationPresent(PostConstruct.class))
                 .forEach(method -> {
-                    // 执行目标方法
                     ThrowableAction.execute(() -> method.invoke(component));
                 });
     }
 
     /**
-     * @param component        组件对象
-     * @param candidateMethods 候选方法
-     * @see #processPreDestroy()
+     * 将带有PreDestroy注解的方法放入preDestroyMethodCache
+     *
+     * @param component
+     * @param candidateMethods
      */
     private void processPreDestroyMetadata(Object component, List<Method> candidateMethods) {
         candidateMethods.stream()
-                .filter(method -> method.isAnnotationPresent(PreDestroy.class)) // 标注 @PreDestroy
+                .filter(method -> method.isAnnotationPresent(PreDestroy.class))
                 .forEach(method -> {
                     preDestroyMethodCache.put(method, component);
                 });
     }
 
+    /**
+     * 执行preDestroyMethodCache中的方法
+     */
     private void processPreDestroy() {
         for (Method preDestroyMethod : preDestroyMethodCache.keySet()) {
             // 移除集合中的对象，防止重复执行 @PreDestroy 方法
@@ -217,7 +287,7 @@ public class ClassicComponentContext implements ComponentContext {
      * @see ThrowableFunction#apply(Object)
      */
     private <R> R executeInContext(ThrowableFunction<Context, R> function) {
-        return executeInContext(function, false);
+        return this.executeInContext(function, false);
     }
 
     /**
@@ -230,9 +300,18 @@ public class ClassicComponentContext implements ComponentContext {
      * @see ThrowableFunction#apply(Object)
      */
     private <R> R executeInContext(ThrowableFunction<Context, R> function, boolean ignoredException) {
-        return executeInContext(this.envContext, function, ignoredException);
+        return this.executeInContext(this.envContext, function, ignoredException);
     }
 
+    /**
+     * 具体执行方法
+     *
+     * @param context
+     * @param function
+     * @param ignoredException
+     * @param <R>
+     * @return
+     */
     private <R> R executeInContext(Context context, ThrowableFunction<Context, R> function,
                                    boolean ignoredException) {
         R result = null;
@@ -256,7 +335,7 @@ public class ClassicComponentContext implements ComponentContext {
      * @return
      */
     public <C> C lookupComponent(String name) {
-        return executeInContext(context -> (C) context.lookup(name));
+        return this.executeInContext(context -> (C) context.lookup(name));
     }
 
     /**
@@ -267,6 +346,7 @@ public class ClassicComponentContext implements ComponentContext {
      * @param <C>
      * @return
      */
+    @Override
     public <C> C getComponent(String name) {
         return (C) componentsCache.get(name);
     }
@@ -276,14 +356,26 @@ public class ClassicComponentContext implements ComponentContext {
      *
      * @return
      */
+    @Override
     public List<String> getComponentNames() {
         return new ArrayList<>(componentsCache.keySet());
     }
 
+    /**
+     * 遍历获取所有的组件名称
+     *
+     * @return
+     */
     private List<String> listAllComponentNames() {
         return listComponentNames("/");
     }
 
+    /**
+     * 遍历获得这个目录名称下的所有组件
+     *
+     * @param name
+     * @return 这个目录名称下的所有组件名称
+     */
     private List<String> listComponentNames(String name) {
         return executeInContext(context -> {
             NamingEnumeration<NameClassPair> e = executeInContext(context, ctx -> ctx.list(name), true);
@@ -311,25 +403,16 @@ public class ClassicComponentContext implements ComponentContext {
         });
     }
 
-    @Override
-    public void init() {
-        initClassLoader();
-        initEnvContext();
-        instantiateComponents();
-        initializeComponents();
-        registerShutdownHook();
-    }
-
-    private void initClassLoader() {
-        // 获取当前 ServletContext（WebApp）ClassLoader
-        this.classLoader = servletContext.getClassLoader();
-    }
-
+    /**
+     * 销毁方法
+     *
+     * @throws RuntimeException
+     */
     @Override
     public void destroy() throws RuntimeException {
-        processPreDestroy();
-        clearCache();
-        closeEnvContext();
+        this.processPreDestroy();
+        this.clearCache();
+        this.closeEnvContext();
     }
 
     private void closeEnvContext() {
@@ -339,21 +422,6 @@ public class ClassicComponentContext implements ComponentContext {
     private void clearCache() {
         componentsCache.clear();
         preDestroyMethodCache.clear();
-    }
-
-    private void initEnvContext() throws RuntimeException {
-        if (this.envContext != null) {
-            return;
-        }
-        Context context = null;
-        try {
-            context = new InitialContext();
-            this.envContext = (Context) context.lookup(COMPONENT_ENV_CONTEXT_NAME);
-        } catch (NamingException e) {
-            throw new RuntimeException(e);
-        } finally {
-            close(context);
-        }
     }
 
     private static void close(Context context) {

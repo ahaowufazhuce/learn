@@ -1,9 +1,9 @@
 package org.geektimes.projects.user.web.listener;
 
 import org.geektimes.context.ClassicComponentContext;
+import org.geektimes.context.ComponentContext;
 import org.geektimes.projects.user.domain.User;
 import org.geektimes.projects.user.management.UserManager;
-import org.geektimes.context.ComponentContext;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -14,6 +14,7 @@ import java.lang.management.ManagementFactory;
 
 /**
  * 监听ServletContext生命周期的变化事件
+ * 初始化组件
  * {@link ClassicComponentContext} 初始化器
  * ContextLoaderListener
  */
@@ -45,8 +46,7 @@ public class ComponentContextInitializerListener implements ServletContextListen
     public void registerMBean() {
         try {
             MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
-            ObjectName objectName = null;
-            objectName = new ObjectName("org.geektimes.projects.user.management:type=User");
+            ObjectName objectName = new ObjectName("org.geektimes.projects.user.management:type=User");
             User user = new User();
             user.setName("刘浩");
             mBeanServer.registerMBean(new UserManager(user), objectName);

@@ -15,8 +15,9 @@ import java.util.logging.Logger;
 
 /**
  * 测试用途
+ *
+ * @author Ma
  */
-@Deprecated
 public class TestingListener implements ServletContextListener {
 
     private Logger logger = Logger.getLogger(this.getClass().getName());

@@ -21,14 +21,12 @@ import org.apache.activemq.command.ActiveMQTextMessage;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.jms.MessageProducer;
-import javax.jms.TextMessage;
 import javax.jms.Topic;
 
 /**
- * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
+ * @author Ma
  * @since
  */
-@Deprecated
 public class TestingComponent {
 
     @Resource(name = "jms/activemq-topic")
